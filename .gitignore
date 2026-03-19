@@ -1,0 +1,8 @@
+.env*
+.directus.env
+redisdata*
+.idea
+pgdata
+postgres-data
+*.tar.gz
+*.txt

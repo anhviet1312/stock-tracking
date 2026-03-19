@@ -1,0 +1,17 @@
+name: Validate database migrations
+
+on:
+  pull_request:
+    branches:
+      - staging
+    paths:
+      - "cmd/migrations/**"
+
+jobs:
+  validate-migrations:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate database migrations
+        run: bash ./scripts/validate-migrations.sh

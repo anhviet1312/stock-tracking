@@ -1,0 +1,10 @@
+psql:
+  uuid_pkg: google
+  output: "internal/bob"
+  pkgname: "bob"
+  except:
+    goose_db_version:
+no_factory: true
+no_tests: true
+wipe: true
+tags: ["json"]
