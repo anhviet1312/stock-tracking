@@ -15,6 +15,7 @@ import (
 	"codebase/internal/datastore"
 	codebase "codebase/internal/models"
 	"codebase/internal/service/mail"
+	"codebase/internal/service/stock"
 
 	"codebase/internal/service/utils"
 	"codebase/pkg/caching"
@@ -54,6 +55,7 @@ func NewContainer(vs map[string]string) *do.Injector {
 	// SERVICE
 	do.Provide(injector, ProvideServiceMail)
 	do.Provide(injector, ProvideServiceUtils)
+	do.Provide(injector, ProvideServiceStock)
 
 	return injector
 }
@@ -215,4 +217,8 @@ func ProvideServiceMail(i *do.Injector) (*mail.ServiceMail, error) {
 
 func ProvideServiceUtils(i *do.Injector) (*utils.ServiceUtils, error) {
 	return utils.NewServiceUtils(i)
+}
+
+func ProvideServiceStock(i *do.Injector) (stock.ServiceStock, error) {
+	return stock.NewServiceStock(i)
 }

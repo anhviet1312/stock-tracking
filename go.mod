@@ -33,12 +33,10 @@ require (
 	github.com/urfave/cli/v2 v2.27.5
 	go.uber.org/zap v1.27.0
 	golang.org/x/net v0.39.0
-	golang.org/x/oauth2 v0.27.0
 	golang.org/x/sync v0.13.0
 )
 
 require (
-	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	github.com/aarondl/json v0.0.0-20221020222930-8b0db17ef1bf // indirect
 	github.com/aarondl/opt v0.0.0-20230114172057-b91f370c41f0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

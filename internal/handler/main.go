@@ -55,6 +55,11 @@ func New(cfg *Config) (http.Handler, error) {
 		})
 		routesAPIv1.Use(cors)
 
+		groupStock := &GroupStock{cfg}
+		{
+			routesAPIv1.GET("/stocks/:group", groupStock.GetStocksByGroupHandler)
+		}
+
 		routesAPIv1Protected := routesAPIv1.Group("/protected")
 		{
 			routesAPIv1Protected.Use(echojwt.WithConfig(echojwt.Config{
