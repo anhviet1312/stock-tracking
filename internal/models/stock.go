@@ -88,3 +88,9 @@ type StockListResponse struct {
 	Message string              `json:"message"`
 	Data    []StockTrackingInfo `json:"data"`
 }
+
+type StockInfoResponse struct {
+	Code    string            `json:"code"`
+	Message string            `json:"message"`
+	Data    StockTrackingInfo `json:"data"`
+}

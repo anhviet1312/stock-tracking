@@ -30,3 +30,22 @@ func (group *GroupStock) GetStocksByGroupHandler(c echo.Context) error {
 	items, err := srv.GetStockGroup(ctx, groupParam)
 	return httpx.RestAbort(c, items, err)
 }
+
+func (group *GroupStock) GetStockInfoHandler(c echo.Context) error {
+	ctx := c.Request().Context()
+	
+	symbolParam := c.Param("symbol")
+	if symbolParam == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "symbol is required"})
+	}
+
+	boardIDParam := c.QueryParam("boardId")
+
+	srv, err := do.Invoke[stock.ServiceStock](group.cfg.Container)
+	if err != nil {
+		return httpx.RestAbort(c, nil, err)
+	}
+
+	item, err := srv.GetStockInfo(ctx, symbolParam, boardIDParam)
+	return httpx.RestAbort(c, item, err)
+}

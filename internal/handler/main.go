@@ -58,6 +58,7 @@ func New(cfg *Config) (http.Handler, error) {
 		groupStock := &GroupStock{cfg}
 		{
 			routesAPIv1.GET("/stocks/:group", groupStock.GetStocksByGroupHandler)
+			routesAPIv1.GET("/stocks/info/:symbol", groupStock.GetStockInfoHandler)
 		}
 
 		routesAPIv1Protected := routesAPIv1.Group("/protected")
