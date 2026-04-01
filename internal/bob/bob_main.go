@@ -11,19 +11,22 @@ import (
 )
 
 var TableNames = struct {
-	Stocks    string
-	UserCodes string
-	Users     string
+	Stocks              string
+	UserCodes           string
+	UserFavouriteStocks string
+	Users               string
 }{
-	Stocks:    "stocks",
-	UserCodes: "user_codes",
-	Users:     "users",
+	Stocks:              "stocks",
+	UserCodes:           "user_codes",
+	UserFavouriteStocks: "user_favourite_stocks",
+	Users:               "users",
 }
 
 var ColumnNames = struct {
-	Stocks    stockColumnNames
-	UserCodes userCodeColumnNames
-	Users     userColumnNames
+	Stocks              stockColumnNames
+	UserCodes           userCodeColumnNames
+	UserFavouriteStocks userFavouriteStockColumnNames
+	Users               userColumnNames
 }{
 	Stocks: stockColumnNames{
 		Symbol:        "symbol",
@@ -43,6 +46,14 @@ var ColumnNames = struct {
 		ExpiredTime: "expired_time",
 		UpdatedAt:   "updated_at",
 		CreatedAt:   "created_at",
+	},
+	UserFavouriteStocks: userFavouriteStockColumnNames{
+		ID:        "id",
+		UserID:    "user_id",
+		Symbol:    "symbol",
+		Status:    "status",
+		CreatedAt: "created_at",
+		UpdatedAt: "updated_at",
 	},
 	Users: userColumnNames{
 		ID:        "id",
@@ -65,18 +76,21 @@ var (
 )
 
 func Where[Q psql.Filterable]() struct {
-	Stocks    stockWhere[Q]
-	UserCodes userCodeWhere[Q]
-	Users     userWhere[Q]
+	Stocks              stockWhere[Q]
+	UserCodes           userCodeWhere[Q]
+	UserFavouriteStocks userFavouriteStockWhere[Q]
+	Users               userWhere[Q]
 } {
 	return struct {
-		Stocks    stockWhere[Q]
-		UserCodes userCodeWhere[Q]
-		Users     userWhere[Q]
+		Stocks              stockWhere[Q]
+		UserCodes           userCodeWhere[Q]
+		UserFavouriteStocks userFavouriteStockWhere[Q]
+		Users               userWhere[Q]
 	}{
-		Stocks:    StockWhere[Q](),
-		UserCodes: UserCodeWhere[Q](),
-		Users:     UserWhere[Q](),
+		Stocks:              StockWhere[Q](),
+		UserCodes:           UserCodeWhere[Q](),
+		UserFavouriteStocks: UserFavouriteStockWhere[Q](),
+		Users:               UserWhere[Q](),
 	}
 }
 
@@ -93,13 +107,17 @@ type joinSet[Q any] struct {
 }
 
 type joins[Q dialect.Joinable] struct {
-	UserCodes joinSet[userCodeRelationshipJoins[Q]]
-	Users     joinSet[userRelationshipJoins[Q]]
+	Stocks              joinSet[stockRelationshipJoins[Q]]
+	UserCodes           joinSet[userCodeRelationshipJoins[Q]]
+	UserFavouriteStocks joinSet[userFavouriteStockRelationshipJoins[Q]]
+	Users               joinSet[userRelationshipJoins[Q]]
 }
 
 func getJoins[Q dialect.Joinable](ctx context.Context) joins[Q] {
 	return joins[Q]{
-		UserCodes: userCodesJoin[Q](ctx),
-		Users:     usersJoin[Q](ctx),
+		Stocks:              stocksJoin[Q](ctx),
+		UserCodes:           userCodesJoin[Q](ctx),
+		UserFavouriteStocks: userFavouriteStocksJoin[Q](ctx),
+		Users:               usersJoin[Q](ctx),
 	}
 }

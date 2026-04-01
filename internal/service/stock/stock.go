@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/samber/do"
 
 	"codebase/internal/models"
@@ -17,6 +18,8 @@ type ServiceStock interface {
 	GetStockGroup(ctx context.Context, group string) ([]models.StockTrackingInfo, error)
 	GetStockExchange(ctx context.Context, exchange string) ([]models.StockTrackingInfo, error)
 	GetStockInfo(ctx context.Context, symbol string, boardID string) (*models.StockTrackingInfo, error)
+	AddFavouriteStock(ctx context.Context, userID uuid.UUID, symbol string) error
+	ListFavouriteStocks(ctx context.Context, userID uuid.UUID) ([]*models.UserFavouriteStock, error)
 }
 
 type serviceStock struct {

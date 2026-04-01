@@ -5,18 +5,23 @@ package bob
 
 import (
 	"context"
+	"database/sql"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/aarondl/opt/null"
 	"github.com/aarondl/opt/omit"
 	"github.com/aarondl/opt/omitnull"
 	"github.com/stephenafamo/bob"
+	"github.com/stephenafamo/bob/clause"
 	"github.com/stephenafamo/bob/dialect/psql"
 	"github.com/stephenafamo/bob/dialect/psql/dialect"
 	"github.com/stephenafamo/bob/dialect/psql/im"
 	"github.com/stephenafamo/bob/dialect/psql/sm"
 	"github.com/stephenafamo/bob/dialect/psql/um"
 	"github.com/stephenafamo/bob/expr"
+	"github.com/stephenafamo/bob/mods"
 )
 
 // Stock is an object representing the database table.
@@ -28,6 +33,8 @@ type Stock struct {
 	Isin          null.Val[string] `db:"isin" json:"isin"`
 	CreatedAt     time.Time        `db:"created_at" json:"created_at"`
 	UpdatedAt     time.Time        `db:"updated_at" json:"updated_at"`
+
+	R stockR `db:"-" json:"-"`
 }
 
 // StockSlice is an alias for a slice of pointers to Stock.
@@ -42,6 +49,11 @@ type StocksQuery = *psql.ViewQuery[*Stock, StockSlice]
 
 // StocksStmt is a prepared statment on stocks
 type StocksStmt = bob.QueryStmt[*Stock, StockSlice]
+
+// stockR is where relationships are stored.
+type stockR struct {
+	SymbolUserFavouriteStocks UserFavouriteStockSlice `json:"SymbolUserFavouriteStocks"` // user_favourite_stocks.fk_ufs_stock
+}
 
 // StockSetter is used for insert/upsert/update operations
 // All values are optional, and do not have to be set
@@ -229,6 +241,24 @@ type stockColumnNames struct {
 	UpdatedAt     string
 }
 
+type stockRelationshipJoins[Q dialect.Joinable] struct {
+	SymbolUserFavouriteStocks bob.Mod[Q]
+}
+
+func buildStockRelationshipJoins[Q dialect.Joinable](ctx context.Context, typ string) stockRelationshipJoins[Q] {
+	return stockRelationshipJoins[Q]{
+		SymbolUserFavouriteStocks: stocksJoinSymbolUserFavouriteStocks[Q](ctx, typ),
+	}
+}
+
+func stocksJoin[Q dialect.Joinable](ctx context.Context) joinSet[stockRelationshipJoins[Q]] {
+	return joinSet[stockRelationshipJoins[Q]]{
+		InnerJoin: buildStockRelationshipJoins[Q](ctx, clause.InnerJoin),
+		LeftJoin:  buildStockRelationshipJoins[Q](ctx, clause.LeftJoin),
+		RightJoin: buildStockRelationshipJoins[Q](ctx, clause.RightJoin),
+	}
+}
+
 var StockColumns = struct {
 	Symbol        psql.Expression
 	CompanyNameVi psql.Expression
@@ -318,7 +348,7 @@ func (o *Stock) Reload(ctx context.Context, exec bob.Executor) error {
 	if err != nil {
 		return err
 	}
-
+	o2.R = o.R
 	*o = *o2
 
 	return nil
@@ -355,10 +385,199 @@ func (o StockSlice) ReloadAll(ctx context.Context, exec bob.Executor) error {
 			if new.Symbol != old.Symbol {
 				continue
 			}
-
+			new.R = old.R
 			*old = *new
 			break
 		}
+	}
+
+	return nil
+}
+
+func stocksJoinSymbolUserFavouriteStocks[Q dialect.Joinable](ctx context.Context, typ string) bob.Mod[Q] {
+	return mods.QueryMods[Q]{
+		dialect.Join[Q](typ, UserFavouriteStocks.NameAs(ctx)).On(
+			UserFavouriteStockColumns.Symbol.EQ(StockColumns.Symbol),
+		),
+	}
+}
+
+// SymbolUserFavouriteStocks starts a query for related objects on user_favourite_stocks
+func (o *Stock) SymbolUserFavouriteStocks(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) UserFavouriteStocksQuery {
+	return UserFavouriteStocks.Query(ctx, exec, append(mods,
+		sm.Where(UserFavouriteStockColumns.Symbol.EQ(psql.Arg(o.Symbol))),
+	)...)
+}
+
+func (os StockSlice) SymbolUserFavouriteStocks(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) UserFavouriteStocksQuery {
+	PKArgs := make([]bob.Expression, len(os))
+	for i, o := range os {
+		PKArgs[i] = psql.ArgGroup(o.Symbol)
+	}
+
+	return UserFavouriteStocks.Query(ctx, exec, append(mods,
+		sm.Where(psql.Group(UserFavouriteStockColumns.Symbol).In(PKArgs...)),
+	)...)
+}
+
+func (o *Stock) Preload(name string, retrieved any) error {
+	if o == nil {
+		return nil
+	}
+
+	switch name {
+	case "SymbolUserFavouriteStocks":
+		rels, ok := retrieved.(UserFavouriteStockSlice)
+		if !ok {
+			return fmt.Errorf("stock cannot load %T as %q", retrieved, name)
+		}
+
+		o.R.SymbolUserFavouriteStocks = rels
+
+		for _, rel := range rels {
+			if rel != nil {
+				rel.R.SymbolStock = o
+			}
+		}
+		return nil
+	default:
+		return fmt.Errorf("stock has no relationship %q", name)
+	}
+}
+
+func ThenLoadStockSymbolUserFavouriteStocks(queryMods ...bob.Mod[*dialect.SelectQuery]) psql.Loader {
+	return psql.Loader(func(ctx context.Context, exec bob.Executor, retrieved any) error {
+		loader, isLoader := retrieved.(interface {
+			LoadStockSymbolUserFavouriteStocks(context.Context, bob.Executor, ...bob.Mod[*dialect.SelectQuery]) error
+		})
+		if !isLoader {
+			return fmt.Errorf("object %T cannot load StockSymbolUserFavouriteStocks", retrieved)
+		}
+
+		err := loader.LoadStockSymbolUserFavouriteStocks(ctx, exec, queryMods...)
+
+		// Don't cause an issue due to missing relationships
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+
+		return err
+	})
+}
+
+// LoadStockSymbolUserFavouriteStocks loads the stock's SymbolUserFavouriteStocks into the .R struct
+func (o *Stock) LoadStockSymbolUserFavouriteStocks(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
+	if o == nil {
+		return nil
+	}
+
+	// Reset the relationship
+	o.R.SymbolUserFavouriteStocks = nil
+
+	related, err := o.SymbolUserFavouriteStocks(ctx, exec, mods...).All()
+	if err != nil {
+		return err
+	}
+
+	for _, rel := range related {
+		rel.R.SymbolStock = o
+	}
+
+	o.R.SymbolUserFavouriteStocks = related
+	return nil
+}
+
+// LoadStockSymbolUserFavouriteStocks loads the stock's SymbolUserFavouriteStocks into the .R struct
+func (os StockSlice) LoadStockSymbolUserFavouriteStocks(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
+	if len(os) == 0 {
+		return nil
+	}
+
+	userFavouriteStocks, err := os.SymbolUserFavouriteStocks(ctx, exec, mods...).All()
+	if err != nil {
+		return err
+	}
+
+	for _, o := range os {
+		o.R.SymbolUserFavouriteStocks = nil
+	}
+
+	for _, o := range os {
+		for _, rel := range userFavouriteStocks {
+			if o.Symbol != rel.Symbol {
+				continue
+			}
+
+			rel.R.SymbolStock = o
+
+			o.R.SymbolUserFavouriteStocks = append(o.R.SymbolUserFavouriteStocks, rel)
+		}
+	}
+
+	return nil
+}
+
+func insertStockSymbolUserFavouriteStocks0(ctx context.Context, exec bob.Executor, userFavouriteStocks1 []*UserFavouriteStockSetter, stock0 *Stock) (UserFavouriteStockSlice, error) {
+	for i := range userFavouriteStocks1 {
+		userFavouriteStocks1[i].Symbol = omit.From(stock0.Symbol)
+	}
+
+	ret, err := UserFavouriteStocks.InsertMany(ctx, exec, userFavouriteStocks1...)
+	if err != nil {
+		return ret, fmt.Errorf("insertStockSymbolUserFavouriteStocks0: %w", err)
+	}
+
+	return ret, nil
+}
+
+func attachStockSymbolUserFavouriteStocks0(ctx context.Context, exec bob.Executor, count int, userFavouriteStocks1 UserFavouriteStockSlice, stock0 *Stock) (UserFavouriteStockSlice, error) {
+	setter := &UserFavouriteStockSetter{
+		Symbol: omit.From(stock0.Symbol),
+	}
+
+	err := UserFavouriteStocks.Update(ctx, exec, setter, userFavouriteStocks1...)
+	if err != nil {
+		return nil, fmt.Errorf("attachStockSymbolUserFavouriteStocks0: %w", err)
+	}
+
+	return userFavouriteStocks1, nil
+}
+
+func (stock0 *Stock) InsertSymbolUserFavouriteStocks(ctx context.Context, exec bob.Executor, related ...*UserFavouriteStockSetter) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	userFavouriteStocks1, err := insertStockSymbolUserFavouriteStocks0(ctx, exec, related, stock0)
+	if err != nil {
+		return err
+	}
+
+	stock0.R.SymbolUserFavouriteStocks = append(stock0.R.SymbolUserFavouriteStocks, userFavouriteStocks1...)
+
+	for _, rel := range userFavouriteStocks1 {
+		rel.R.SymbolStock = stock0
+	}
+	return nil
+}
+
+func (stock0 *Stock) AttachSymbolUserFavouriteStocks(ctx context.Context, exec bob.Executor, related ...*UserFavouriteStock) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	userFavouriteStocks1 := UserFavouriteStockSlice(related)
+
+	_, err = attachStockSymbolUserFavouriteStocks0(ctx, exec, len(related), userFavouriteStocks1, stock0)
+	if err != nil {
+		return err
+	}
+
+	stock0.R.SymbolUserFavouriteStocks = append(stock0.R.SymbolUserFavouriteStocks, userFavouriteStocks1...)
+
+	for _, rel := range related {
+		rel.R.SymbolStock = stock0
 	}
 
 	return nil

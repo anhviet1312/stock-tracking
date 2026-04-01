@@ -55,7 +55,8 @@ type UsersStmt = bob.QueryStmt[*User, UserSlice]
 
 // userR is where relationships are stored.
 type userR struct {
-	UserCodes UserCodeSlice `json:"UserCodes"` // user_codes.fk__user_codes__users
+	UserCodes           UserCodeSlice           `json:"UserCodes"`           // user_codes.fk__user_codes__users
+	UserFavouriteStocks UserFavouriteStockSlice `json:"UserFavouriteStocks"` // user_favourite_stocks.fk_ufs_user
 }
 
 // UserSetter is used for insert/upsert/update operations
@@ -289,12 +290,14 @@ type userColumnNames struct {
 }
 
 type userRelationshipJoins[Q dialect.Joinable] struct {
-	UserCodes bob.Mod[Q]
+	UserCodes           bob.Mod[Q]
+	UserFavouriteStocks bob.Mod[Q]
 }
 
 func buildUserRelationshipJoins[Q dialect.Joinable](ctx context.Context, typ string) userRelationshipJoins[Q] {
 	return userRelationshipJoins[Q]{
-		UserCodes: usersJoinUserCodes[Q](ctx, typ),
+		UserCodes:           usersJoinUserCodes[Q](ctx, typ),
+		UserFavouriteStocks: usersJoinUserFavouriteStocks[Q](ctx, typ),
 	}
 }
 
@@ -457,6 +460,14 @@ func usersJoinUserCodes[Q dialect.Joinable](ctx context.Context, typ string) bob
 	}
 }
 
+func usersJoinUserFavouriteStocks[Q dialect.Joinable](ctx context.Context, typ string) bob.Mod[Q] {
+	return mods.QueryMods[Q]{
+		dialect.Join[Q](typ, UserFavouriteStocks.NameAs(ctx)).On(
+			UserFavouriteStockColumns.UserID.EQ(UserColumns.ID),
+		),
+	}
+}
+
 // UserCodes starts a query for related objects on user_codes
 func (o *User) UserCodes(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) UserCodesQuery {
 	return UserCodes.Query(ctx, exec, append(mods,
@@ -475,6 +486,24 @@ func (os UserSlice) UserCodes(ctx context.Context, exec bob.Executor, mods ...bo
 	)...)
 }
 
+// UserFavouriteStocks starts a query for related objects on user_favourite_stocks
+func (o *User) UserFavouriteStocks(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) UserFavouriteStocksQuery {
+	return UserFavouriteStocks.Query(ctx, exec, append(mods,
+		sm.Where(UserFavouriteStockColumns.UserID.EQ(psql.Arg(o.ID))),
+	)...)
+}
+
+func (os UserSlice) UserFavouriteStocks(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) UserFavouriteStocksQuery {
+	PKArgs := make([]bob.Expression, len(os))
+	for i, o := range os {
+		PKArgs[i] = psql.ArgGroup(o.ID)
+	}
+
+	return UserFavouriteStocks.Query(ctx, exec, append(mods,
+		sm.Where(psql.Group(UserFavouriteStockColumns.UserID).In(PKArgs...)),
+	)...)
+}
+
 func (o *User) Preload(name string, retrieved any) error {
 	if o == nil {
 		return nil
@@ -488,6 +517,20 @@ func (o *User) Preload(name string, retrieved any) error {
 		}
 
 		o.R.UserCodes = rels
+
+		for _, rel := range rels {
+			if rel != nil {
+				rel.R.User = o
+			}
+		}
+		return nil
+	case "UserFavouriteStocks":
+		rels, ok := retrieved.(UserFavouriteStockSlice)
+		if !ok {
+			return fmt.Errorf("user cannot load %T as %q", retrieved, name)
+		}
+
+		o.R.UserFavouriteStocks = rels
 
 		for _, rel := range rels {
 			if rel != nil {
@@ -572,6 +615,78 @@ func (os UserSlice) LoadUserUserCodes(ctx context.Context, exec bob.Executor, mo
 	return nil
 }
 
+func ThenLoadUserUserFavouriteStocks(queryMods ...bob.Mod[*dialect.SelectQuery]) psql.Loader {
+	return psql.Loader(func(ctx context.Context, exec bob.Executor, retrieved any) error {
+		loader, isLoader := retrieved.(interface {
+			LoadUserUserFavouriteStocks(context.Context, bob.Executor, ...bob.Mod[*dialect.SelectQuery]) error
+		})
+		if !isLoader {
+			return fmt.Errorf("object %T cannot load UserUserFavouriteStocks", retrieved)
+		}
+
+		err := loader.LoadUserUserFavouriteStocks(ctx, exec, queryMods...)
+
+		// Don't cause an issue due to missing relationships
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+
+		return err
+	})
+}
+
+// LoadUserUserFavouriteStocks loads the user's UserFavouriteStocks into the .R struct
+func (o *User) LoadUserUserFavouriteStocks(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
+	if o == nil {
+		return nil
+	}
+
+	// Reset the relationship
+	o.R.UserFavouriteStocks = nil
+
+	related, err := o.UserFavouriteStocks(ctx, exec, mods...).All()
+	if err != nil {
+		return err
+	}
+
+	for _, rel := range related {
+		rel.R.User = o
+	}
+
+	o.R.UserFavouriteStocks = related
+	return nil
+}
+
+// LoadUserUserFavouriteStocks loads the user's UserFavouriteStocks into the .R struct
+func (os UserSlice) LoadUserUserFavouriteStocks(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
+	if len(os) == 0 {
+		return nil
+	}
+
+	userFavouriteStocks, err := os.UserFavouriteStocks(ctx, exec, mods...).All()
+	if err != nil {
+		return err
+	}
+
+	for _, o := range os {
+		o.R.UserFavouriteStocks = nil
+	}
+
+	for _, o := range os {
+		for _, rel := range userFavouriteStocks {
+			if o.ID != rel.UserID {
+				continue
+			}
+
+			rel.R.User = o
+
+			o.R.UserFavouriteStocks = append(o.R.UserFavouriteStocks, rel)
+		}
+	}
+
+	return nil
+}
+
 func insertUserUserCodes0(ctx context.Context, exec bob.Executor, userCodes1 []*UserCodeSetter, user0 *User) (UserCodeSlice, error) {
 	for i := range userCodes1 {
 		userCodes1[i].UserID = omit.From(user0.ID)
@@ -630,6 +745,72 @@ func (user0 *User) AttachUserCodes(ctx context.Context, exec bob.Executor, relat
 	}
 
 	user0.R.UserCodes = append(user0.R.UserCodes, userCodes1...)
+
+	for _, rel := range related {
+		rel.R.User = user0
+	}
+
+	return nil
+}
+
+func insertUserUserFavouriteStocks0(ctx context.Context, exec bob.Executor, userFavouriteStocks1 []*UserFavouriteStockSetter, user0 *User) (UserFavouriteStockSlice, error) {
+	for i := range userFavouriteStocks1 {
+		userFavouriteStocks1[i].UserID = omit.From(user0.ID)
+	}
+
+	ret, err := UserFavouriteStocks.InsertMany(ctx, exec, userFavouriteStocks1...)
+	if err != nil {
+		return ret, fmt.Errorf("insertUserUserFavouriteStocks0: %w", err)
+	}
+
+	return ret, nil
+}
+
+func attachUserUserFavouriteStocks0(ctx context.Context, exec bob.Executor, count int, userFavouriteStocks1 UserFavouriteStockSlice, user0 *User) (UserFavouriteStockSlice, error) {
+	setter := &UserFavouriteStockSetter{
+		UserID: omit.From(user0.ID),
+	}
+
+	err := UserFavouriteStocks.Update(ctx, exec, setter, userFavouriteStocks1...)
+	if err != nil {
+		return nil, fmt.Errorf("attachUserUserFavouriteStocks0: %w", err)
+	}
+
+	return userFavouriteStocks1, nil
+}
+
+func (user0 *User) InsertUserFavouriteStocks(ctx context.Context, exec bob.Executor, related ...*UserFavouriteStockSetter) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	userFavouriteStocks1, err := insertUserUserFavouriteStocks0(ctx, exec, related, user0)
+	if err != nil {
+		return err
+	}
+
+	user0.R.UserFavouriteStocks = append(user0.R.UserFavouriteStocks, userFavouriteStocks1...)
+
+	for _, rel := range userFavouriteStocks1 {
+		rel.R.User = user0
+	}
+	return nil
+}
+
+func (user0 *User) AttachUserFavouriteStocks(ctx context.Context, exec bob.Executor, related ...*UserFavouriteStock) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	userFavouriteStocks1 := UserFavouriteStockSlice(related)
+
+	_, err = attachUserUserFavouriteStocks0(ctx, exec, len(related), userFavouriteStocks1, user0)
+	if err != nil {
+		return err
+	}
+
+	user0.R.UserFavouriteStocks = append(user0.R.UserFavouriteStocks, userFavouriteStocks1...)
 
 	for _, rel := range related {
 		rel.R.User = user0

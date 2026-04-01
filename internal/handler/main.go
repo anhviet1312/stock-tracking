@@ -62,6 +62,12 @@ func New(cfg *Config) (http.Handler, error) {
 			routesAPIv1.GET("/stocks/info/:symbol", groupStock.GetStockInfoHandler)
 		}
 
+		groupAuth := &GroupAuth{cfg}
+		{
+			routesAPIv1.POST("/auth/register", groupAuth.RegisterHandler)
+			routesAPIv1.POST("/auth/login", groupAuth.LoginHandler)
+		}
+
 		routesAPIv1Protected := routesAPIv1.Group("/protected")
 		{
 			routesAPIv1Protected.Use(echojwt.WithConfig(echojwt.Config{
@@ -71,6 +77,10 @@ func New(cfg *Config) (http.Handler, error) {
 			}))
 
 			routesAPIv1Protected.Use(WithAutheticatedJWTTokenData())
+
+			groupFavouriteStock := &GroupFavouriteStock{cfg}
+			routesAPIv1Protected.POST("/stocks/favourite", groupFavouriteStock.AddFavouriteHandler)
+			routesAPIv1Protected.GET("/stocks/favourite", groupFavouriteStock.ListFavouritesHandler)
 		}
 	}
 
