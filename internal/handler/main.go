@@ -40,9 +40,9 @@ func New(cfg *Config) (http.Handler, error) {
 	}
 
 	r.JSONSerializer = httpx.SegmentJSONSerializer{}
-	r.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
-		Format: "${time_rfc3339}\t${method}\t${uri}\t${status}\t${latency_human}\n",
-	}))
+	// r.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+	// 	Format: "${time_rfc3339}\t${method}\t${uri}\t${status}\t${latency_human}\n",
+	// }))
 	r.Use(middleware.Recover())
 
 	routesAPIv1 := r.Group("/api/v1")
@@ -57,7 +57,8 @@ func New(cfg *Config) (http.Handler, error) {
 
 		groupStock := &GroupStock{cfg}
 		{
-			routesAPIv1.GET("/stocks/:group", groupStock.GetStocksByGroupHandler)
+			routesAPIv1.GET("/stocks/group/:group", groupStock.GetStocksByGroupHandler)
+			routesAPIv1.GET("/stocks/exchange/:exchange", groupStock.GetStocksByExchangeHandler)
 			routesAPIv1.GET("/stocks/info/:symbol", groupStock.GetStockInfoHandler)
 		}
 

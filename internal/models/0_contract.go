@@ -4,14 +4,20 @@ import (
 	"context"
 
 	"github.com/go-redis/redis_rate/v10"
+
+	"codebase/internal/bob"
 )
 
 type ReadOnlyDatastore interface {
+	FindStockBySymbol(ctx context.Context, symbol string) (*Stock, error)
 }
 
 type Datastore interface {
 	ReadOnlyDatastore
 	Begin(ctx context.Context) (TxDatastore, error)
+
+	CreateManyStocks(ctx context.Context, params []*bob.StockSetter) error
+	UpdateStock(ctx context.Context, symbol string, param *bob.StockSetter) (*Stock, error)
 }
 
 // TxDatastore a transactional Datastore. All functions are execute under a transaction.

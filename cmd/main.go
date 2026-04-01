@@ -41,6 +41,7 @@ func main() {
 			commandServer(appContainer),
 			NewMigrateCommand(),
 			NewRedisDeleteCommand(),
+			NewCrawlStocksCommand(appContainer),
 		},
 
 		Metadata: map[string]any{

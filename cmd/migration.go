@@ -37,7 +37,7 @@ func NewMigrateCommand() *cli.Command {
 				return err
 			}
 
-			dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", vs["DB_USER"], vs["DB_PASSWORD"], vs["DB_HOST"], vs["DB_PORT"], vs["DB_DATABASE"])
+			dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=require", vs["DB_USER"], vs["DB_PASSWORD"], vs["DB_HOST"], vs["DB_PORT"], vs["DB_DATABASE"])
 
 			db := sql.OpenDB(pgdriver.NewConnector(
 				pgdriver.WithDSN(dsn)))

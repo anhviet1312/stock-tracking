@@ -16,7 +16,7 @@ type GroupStock struct {
 
 func (group *GroupStock) GetStocksByGroupHandler(c echo.Context) error {
 	ctx := c.Request().Context()
-	
+
 	groupParam := c.Param("group")
 	if groupParam == "" {
 		return c.JSON(http.StatusBadRequest, map[string]string{"message": "group is required"})
@@ -31,9 +31,26 @@ func (group *GroupStock) GetStocksByGroupHandler(c echo.Context) error {
 	return httpx.RestAbort(c, items, err)
 }
 
+func (group *GroupStock) GetStocksByExchangeHandler(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	exchangeParam := c.Param("exchange")
+	if exchangeParam == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "exchange is required"})
+	}
+
+	srv, err := do.Invoke[stock.ServiceStock](group.cfg.Container)
+	if err != nil {
+		return httpx.RestAbort(c, nil, err)
+	}
+
+	items, err := srv.GetStockExchange(ctx, exchangeParam)
+	return httpx.RestAbort(c, items, err)
+}
+
 func (group *GroupStock) GetStockInfoHandler(c echo.Context) error {
 	ctx := c.Request().Context()
-	
+
 	symbolParam := c.Param("symbol")
 	if symbolParam == "" {
 		return c.JSON(http.StatusBadRequest, map[string]string{"message": "symbol is required"})
