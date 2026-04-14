@@ -10,6 +10,7 @@ import (
 
 	"codebase/internal/bob"
 	"codebase/internal/models"
+	"codebase/pkg/errorx"
 )
 
 // AddFavouriteStock adds a stock to the user's favourite list
@@ -30,11 +31,19 @@ func (s *serviceStock) AddFavouriteStock(ctx context.Context, userID uuid.UUID, 
 	datastore := s.Utils.Datastore
 	err := datastore.AddFavouriteStock(ctx, param)
 	if err != nil {
+		if _, ok := errorx.IsDuplicated(err); ok {
+			return nil
+		}
 		// handle duplicate case
 		return errors.New("failed to add favourite stock or it already exists")
 	}
 
 	return nil
+}
+
+// RemoveFavouriteStock removes a stock from the user's favourite list
+func (s *serviceStock) RemoveFavouriteStock(ctx context.Context, userID uuid.UUID, symbol string) error {
+	return s.Utils.Datastore.RemoveFavouriteStock(ctx, userID, symbol)
 }
 
 // ListFavouriteStocks gets all favourite stocks for a user and fetches detailed stock info

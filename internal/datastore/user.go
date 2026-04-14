@@ -52,8 +52,14 @@ func (ds *PgxDatastore) AddFavouriteStock(ctx context.Context, param *bob.UserFa
 	return err
 }
 
+// RemoveFavouriteStock physically deletes a favourite stock record.
+func (ds *PgxDatastore) RemoveFavouriteStock(ctx context.Context, userID uuid.UUID, symbol string) error {
+	query := "DELETE FROM user_favourite_stocks WHERE user_id = $1 AND symbol = $2"
+	_, err := ds.bobExecutor.ExecContext(ctx, query, userID, symbol)
+	return err
+}
+
 // ListFavouriteStocks fetches the favourite stocks for a user.
-// Returns a slice of business models.
 func (ds *PgxDatastore) ListFavouriteStocks(ctx context.Context, userID uuid.UUID) ([]*models.UserFavouriteStock, error) {
 	mods := []realBob.Mod[*dialect.SelectQuery]{
 		sm.Where(bob.UserFavouriteStockColumns.UserID.EQ(psql.Arg(userID))),

@@ -10,6 +10,7 @@ import (
 	"codebase/internal/bob"
 	"codebase/internal/models"
 	"codebase/internal/service/utils"
+	"codebase/pkg/errorx"
 
 	"github.com/aarondl/opt/omit"
 	"github.com/aarondl/opt/omitnull"
@@ -81,12 +82,12 @@ func (s *serviceAuth) Register(ctx context.Context, req *models.RegisterRequest)
 func (s *serviceAuth) Login(ctx context.Context, req *models.LoginRequest) (*models.AuthResponse, error) {
 	user, err := s.Datastore.FindRawUserByUsername(ctx, req.Username)
 	if err != nil || user == nil {
-		return nil, errors.New("invalid username or password")
+		return nil, errorx.Wrap(fmt.Errorf("invalid username or password"), errorx.NotExist)
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
 	if err != nil {
-		return nil, errors.New("invalid username or password")
+		return nil, errorx.Wrap(fmt.Errorf("invalid username or password"), errorx.Invalid)
 	}
 
 	claims := jwt.MapClaims{

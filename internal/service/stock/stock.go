@@ -19,6 +19,7 @@ type ServiceStock interface {
 	GetStockExchange(ctx context.Context, exchange string) ([]models.StockTrackingInfo, error)
 	GetStockInfo(ctx context.Context, symbol string, boardID string) (*models.StockTrackingInfo, error)
 	AddFavouriteStock(ctx context.Context, userID uuid.UUID, symbol string) error
+	RemoveFavouriteStock(ctx context.Context, userID uuid.UUID, symbol string) error
 	ListFavouriteStocks(ctx context.Context, userID uuid.UUID) ([]*models.UserFavouriteStock, error)
 }
 

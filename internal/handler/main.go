@@ -81,6 +81,7 @@ func New(cfg *Config) (http.Handler, error) {
 			groupFavouriteStock := &GroupFavouriteStock{cfg}
 			routesAPIv1Protected.POST("/stocks/favourite", groupFavouriteStock.AddFavouriteHandler)
 			routesAPIv1Protected.GET("/stocks/favourite", groupFavouriteStock.ListFavouritesHandler)
+			routesAPIv1Protected.DELETE("/stocks/favourite/:symbol", groupFavouriteStock.RemoveFavouriteHandler)
 		}
 	}
 

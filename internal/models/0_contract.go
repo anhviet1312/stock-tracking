@@ -25,6 +25,7 @@ type Datastore interface {
 
 	CreateUser(ctx context.Context, param *bob.UserSetter) (*User, error)
 	AddFavouriteStock(ctx context.Context, param *bob.UserFavouriteStockSetter) error
+	RemoveFavouriteStock(ctx context.Context, userID uuid.UUID, symbol string) error
 }
 
 // TxDatastore a transactional Datastore. All functions are execute under a transaction.

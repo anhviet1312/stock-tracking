@@ -61,3 +61,27 @@ func (g *GroupFavouriteStock) ListFavouritesHandler(c echo.Context) error {
 
 	return httpx.RestAbort(c, res, nil)
 }
+
+func (g *GroupFavouriteStock) RemoveFavouriteHandler(c echo.Context) error {
+	userClaim, ok := c.Request().Context().Value(models.ContextUserClaimKey).(*models.UserClaim)
+	if !ok || userClaim == nil {
+		return httpx.RestAbort(c, nil, errors.New("unauthorized"))
+	}
+
+	symbol := c.Param("symbol")
+	if symbol == "" {
+		return httpx.RestAbort(c, nil, errors.New("missing symbol parameter"))
+	}
+
+	svc, err := do.Invoke[stock.ServiceStock](g.Config.Container)
+	if err != nil {
+		return httpx.RestAbort(c, nil, err)
+	}
+
+	err = svc.RemoveFavouriteStock(c.Request().Context(), userClaim.ID, symbol)
+	if err != nil {
+		return httpx.RestAbort(c, nil, err)
+	}
+
+	return httpx.RestAbort(c, nil, nil)
+}
