@@ -16,6 +16,21 @@ CREATE INDEX idx_users__username ON "users" ("username");
 CREATE INDEX idx_users__email ON "users" ("email");
 CREATE INDEX idx_users__created_at ON "users" ("created_at");
 
+CREATE TABLE stocks (
+    symbol VARCHAR(10) PRIMARY KEY,       -- stockSymbol (ACB, FPT...)
+    company_name_vi TEXT,                 -- companyNameVi
+    company_name_en TEXT,                 -- companyNameEn
+    exchange VARCHAR(10),                 -- hose, hnxe...
+    isin VARCHAR(20),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL
+);
+
+CREATE INDEX idx_stocks__symbol ON "stocks" ("symbol");
+CREATE INDEX idx_stocks__exchange ON "stocks" ("exchange");
+CREATE INDEX idx_stocks__created_at ON "stocks" ("created_at");
+CREATE INDEX idx_stocks__isin ON "stocks" ("isin");
+
 CREATE TABLE user_codes
 (
     "id"            UUID PRIMARY KEY,

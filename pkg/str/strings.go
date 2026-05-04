@@ -31,7 +31,7 @@ func StrIsNumber(str string) bool {
 func StrTrimSpecialCharacter(str string) string {
 	specialCharacters := []string{"&&", "||", "!", "(", ")", "{", "}", "[", "]", "^", "\"", "~", "*", "?", ":"}
 	for _, v := range specialCharacters {
-		str = strings.Replace(str, v, "", -1)
+		str = strings.ReplaceAll(str, v, "")
 	}
 	return str
 }

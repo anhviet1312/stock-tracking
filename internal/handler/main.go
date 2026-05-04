@@ -40,9 +40,9 @@ func New(cfg *Config) (http.Handler, error) {
 	}
 
 	r.JSONSerializer = httpx.SegmentJSONSerializer{}
-	r.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
-		Format: "${time_rfc3339}\t${method}\t${uri}\t${status}\t${latency_human}\n",
-	}))
+	// r.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+	// 	Format: "${time_rfc3339}\t${method}\t${uri}\t${status}\t${latency_human}\n",
+	// }))
 	r.Use(middleware.Recover())
 
 	routesAPIv1 := r.Group("/api/v1")
@@ -55,6 +55,19 @@ func New(cfg *Config) (http.Handler, error) {
 		})
 		routesAPIv1.Use(cors)
 
+		groupStock := &GroupStock{cfg}
+		{
+			routesAPIv1.GET("/stocks/group/:group", groupStock.GetStocksByGroupHandler)
+			routesAPIv1.GET("/stocks/exchange/:exchange", groupStock.GetStocksByExchangeHandler)
+			routesAPIv1.GET("/stocks/info/:symbol", groupStock.GetStockInfoHandler)
+		}
+
+		groupAuth := &GroupAuth{cfg}
+		{
+			routesAPIv1.POST("/auth/register", groupAuth.RegisterHandler)
+			routesAPIv1.POST("/auth/login", groupAuth.LoginHandler)
+		}
+
 		routesAPIv1Protected := routesAPIv1.Group("/protected")
 		{
 			routesAPIv1Protected.Use(echojwt.WithConfig(echojwt.Config{
@@ -64,6 +77,11 @@ func New(cfg *Config) (http.Handler, error) {
 			}))
 
 			routesAPIv1Protected.Use(WithAutheticatedJWTTokenData())
+
+			groupFavouriteStock := &GroupFavouriteStock{cfg}
+			routesAPIv1Protected.POST("/stocks/favourite", groupFavouriteStock.AddFavouriteHandler)
+			routesAPIv1Protected.GET("/stocks/favourite", groupFavouriteStock.ListFavouritesHandler)
+			routesAPIv1Protected.DELETE("/stocks/favourite/:symbol", groupFavouriteStock.RemoveFavouriteHandler)
 		}
 	}
 

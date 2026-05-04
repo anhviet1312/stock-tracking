@@ -21,9 +21,9 @@ func SendMail(email *models.Email, auth sasl.Client, addressSmtp string) error {
 
 	var msg strings.Builder
 	for k, v := range headers {
-		msg.WriteString(fmt.Sprintf("%s: %s\r\n", k, v))
+		fmt.Fprintf(&msg, "%s: %s\r\n", k, v)
 	}
-	msg.WriteString("\r\n" + email.Body)
+	fmt.Fprintf(&msg, "\r\n%s", email.Body)
 
 	err := smtp.SendMail(addressSmtp, auth, email.From, email.To, strings.NewReader(msg.String()))
 	if err != nil {

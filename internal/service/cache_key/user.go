@@ -12,13 +12,13 @@ const (
 )
 
 func CacheKeyUserByID(id uuid.UUID) string {
-	return fmt.Sprintf("[STORYWEB]:user:user_id:%s", id.String())
+	return fmt.Sprintf("[STOCK_TRACKING]:user:user_id:%s", id.String())
 }
 
 func CacheKeyUserByUsername(username string) string {
-	return fmt.Sprintf("[STORYWEB]:user:username:%s", username)
+	return fmt.Sprintf("[STOCK_TRACKING]:user:username:%s", username)
 }
 
 func CacheKeyUserByEmail(email string) string {
-	return fmt.Sprintf("[STORYWEB]:user:email:%s", email)
+	return fmt.Sprintf("[STOCK_TRACKING]:user:email:%s", email)
 }

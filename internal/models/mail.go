@@ -1,8 +1,8 @@
 package models
 
 const (
-	MailActiveSubject        = "Kích hoạt tài khoản"
-	ADDRESS_IMAP      string = "imap.yandex.com:993"
+	MailActiveSubject = "Kích hoạt tài khoản"
+	ADDRESS_IMAP      = "imap.yandex.com:993"
 )
 
 type Email struct {

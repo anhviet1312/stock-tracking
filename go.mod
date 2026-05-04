@@ -5,6 +5,7 @@ go 1.24.0
 toolchain go1.24.5
 
 require (
+	github.com/aarondl/opt v0.0.0-20230114172057-b91f370c41f0
 	github.com/emersion/go-imap/v2 v2.0.0-beta.5
 	github.com/emersion/go-sasl v0.0.0-20241020182733-b788ff22d5a6
 	github.com/emersion/go-smtp v0.21.3
@@ -19,28 +20,24 @@ require (
 	github.com/labstack/echo-contrib v0.17.2
 	github.com/labstack/echo-jwt/v4 v4.3.1
 	github.com/labstack/echo/v4 v4.13.3
-	github.com/lib/pq v1.10.7
 	github.com/ory/ladon v1.3.0
 	github.com/pressly/goose/v3 v3.24.1
 	github.com/redis/go-redis/v9 v9.7.1
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/samber/do v1.6.0
 	github.com/segmentio/encoding v0.4.1
-	github.com/stephenafamo/bob v0.38.0
+	github.com/stephenafamo/bob v0.25.0
 	github.com/stephenafamo/scan v0.7.0
 	github.com/stretchr/testify v1.10.0
 	github.com/uptrace/bun/driver/pgdriver v1.2.10
 	github.com/urfave/cli/v2 v2.27.5
 	go.uber.org/zap v1.27.0
 	golang.org/x/net v0.39.0
-	golang.org/x/oauth2 v0.27.0
 	golang.org/x/sync v0.13.0
 )
 
 require (
-	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	github.com/aarondl/json v0.0.0-20221020222930-8b0db17ef1bf // indirect
-	github.com/aarondl/opt v0.0.0-20230114172057-b91f370c41f0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
