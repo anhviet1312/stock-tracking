@@ -13,7 +13,10 @@ type ReadOnlyDatastore interface {
 	FindStockBySymbol(ctx context.Context, symbol string) (*Stock, error)
 	FindUserByUsername(ctx context.Context, username string) (*User, error)
 	FindRawUserByUsername(ctx context.Context, username string) (*bob.User, error)
+	FindRawUserByID(ctx context.Context, id uuid.UUID) (*bob.User, error)
 	ListFavouriteStocks(ctx context.Context, userID uuid.UUID) ([]*UserFavouriteStock, error)
+	ListUserStockAlerts(ctx context.Context, userID uuid.UUID) ([]*UserStockAlert, error)
+	ListAllActiveStockAlerts(ctx context.Context) ([]*UserStockAlert, error)
 }
 
 type Datastore interface {
@@ -24,8 +27,13 @@ type Datastore interface {
 	UpdateStock(ctx context.Context, symbol string, param *bob.StockSetter) (*Stock, error)
 
 	CreateUser(ctx context.Context, param *bob.UserSetter) (*User, error)
+	UpdateUser(ctx context.Context, userID uuid.UUID, param *bob.UserSetter) (*User, error)
 	AddFavouriteStock(ctx context.Context, param *bob.UserFavouriteStockSetter) error
 	RemoveFavouriteStock(ctx context.Context, userID uuid.UUID, symbol string) error
+	
+	SetStockAlert(ctx context.Context, param *bob.UserStockAlertSetter) error
+	RemoveStockAlert(ctx context.Context, id uuid.UUID, userID uuid.UUID) error
+	UpdateStockAlert(ctx context.Context, id uuid.UUID, param *bob.UserStockAlertSetter) error
 }
 
 // TxDatastore a transactional Datastore. All functions are execute under a transaction.

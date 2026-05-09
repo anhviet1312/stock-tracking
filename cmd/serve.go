@@ -13,6 +13,9 @@ import (
 	"github.com/samber/do"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/errgroup"
+
+	"codebase/internal/crontab"
+	crontabPkg "codebase/pkg/crontab"
 )
 
 func commandServer(container *do.Injector) *cli.Command {
@@ -42,6 +45,11 @@ func commandServer(container *do.Injector) *cli.Command {
 				Addr:    c.String("addr"),
 				Handler: router,
 			}
+
+			cm := crontabPkg.NewCrontabManager(true)
+			crontab.RegisterPriceMonitorJob(container, cm)
+			cm.Start()
+			defer cm.Stop()
 
 			ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 			defer stop()

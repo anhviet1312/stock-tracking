@@ -12,6 +12,8 @@ import (
 	"github.com/stephenafamo/bob/dialect/psql"
 	"github.com/stephenafamo/bob/dialect/psql/dialect"
 	"github.com/stephenafamo/bob/dialect/psql/sm"
+	"github.com/stephenafamo/bob/dialect/psql/um"
+	"github.com/stephenafamo/scan"
 )
 
 // FindUserByUsername fetches a user by their username
@@ -36,9 +38,39 @@ func (ds *PgxDatastore) FindRawUserByUsername(ctx context.Context, username stri
 	return bob.Users.Query(ctx, ds.bobExecutor, mods...).One()
 }
 
+// FindRawUserByID fetches a user by their ID and returns the raw bob model
+func (ds *PgxDatastore) FindRawUserByID(ctx context.Context, id uuid.UUID) (*bob.User, error) {
+	mods := []realBob.Mod[*dialect.SelectQuery]{
+		sm.Where(bob.UserColumns.ID.EQ(psql.Arg(id))),
+	}
+	return bob.Users.Query(ctx, ds.bobExecutor, mods...).One()
+}
+
 // CreateUser creates a new user via bob
 func (ds *PgxDatastore) CreateUser(ctx context.Context, param *bob.UserSetter) (*models.User, error) {
 	item, err := bob.Users.Insert(ctx, ds.bobExecutor, param)
+	if err != nil {
+		return nil, err
+	}
+
+	return models.UserBobToRaw(item), nil
+}
+
+func (ds *PgxDatastore) UpdateUser(ctx context.Context, userID uuid.UUID, params *bob.UserSetter) (*models.User, error) {
+	builder := psql.Update(
+		um.Table(bob.Users.Name(ctx)),
+		um.Where(bob.UserColumns.ID.EQ(psql.Arg(userID))),
+		um.Returning("*"),
+	)
+
+	ks, vs := PrepareSetterMap(ctx, params)
+	for i, x := range ks {
+		builder.Apply(
+			um.SetCol(x).ToArg(vs[i]),
+		)
+	}
+
+	item, err := realBob.One(ctx, ds.bobExecutor, builder, scan.StructMapper[*bob.User]())
 	if err != nil {
 		return nil, err
 	}

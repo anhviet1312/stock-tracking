@@ -51,7 +51,7 @@ type StockTrackingInfo struct {
 	LastTradingDate            string  `json:"lastTradingDate"`
 	Market                     string  `json:"market"`
 	MaturityDate               string  `json:"maturityDate"`
-	ParValue                   int     `json:"parValue"`
+	ParValue                   int64   `json:"parValue"`
 	PermaHalt                  bool    `json:"permaHalt"`
 	RefPrice                   float64 `json:"refPrice"`
 	StockSymbol                string  `json:"stockSymbol"`
@@ -59,47 +59,47 @@ type StockTrackingInfo struct {
 	TradingCurrencyISOCode     string  `json:"tradingCurrencyISOCode"`
 	TradingDate                string  `json:"tradingDate"`
 	TradingStatus              string  `json:"tradingStatus"`
-	TradingUnit                int     `json:"tradingUnit"`
-	ContractMultiplier         int     `json:"contractMultiplier"`
+	TradingUnit                int64   `json:"tradingUnit"`
+	ContractMultiplier         int64   `json:"contractMultiplier"`
 	PriorClosePrice            float64 `json:"priorClosePrice"`
 	ProductID                  string  `json:"productId"`
-	LastMFSeq                  int     `json:"lastMFSeq"`
-	RemainForeignQtty          int     `json:"remainForeignQtty"`
+	LastMFSeq                  int64   `json:"lastMFSeq"`
+	RemainForeignQtty          int64   `json:"remainForeignQtty"`
 	Best1Bid                   float64 `json:"best1Bid"`
-	Best1BidVol                int     `json:"best1BidVol"`
+	Best1BidVol                int64   `json:"best1BidVol"`
 	Best1Offer                 float64 `json:"best1Offer"`
-	Best1OfferVol              int     `json:"best1OfferVol"`
+	Best1OfferVol              int64   `json:"best1OfferVol"`
 	Best2Bid                   float64 `json:"best2Bid"`
-	Best2BidVol                int     `json:"best2BidVol"`
+	Best2BidVol                int64   `json:"best2BidVol"`
 	Best2Offer                 float64 `json:"best2Offer"`
-	Best2OfferVol              int     `json:"best2OfferVol"`
+	Best2OfferVol              int64   `json:"best2OfferVol"`
 	Best3Bid                   float64 `json:"best3Bid"`
-	Best3BidVol                int     `json:"best3BidVol"`
+	Best3BidVol                int64   `json:"best3BidVol"`
 	Best3Offer                 float64 `json:"best3Offer"`
-	Best3OfferVol              int     `json:"best3OfferVol"`
+	Best3OfferVol              int64   `json:"best3OfferVol"`
 	ExpectedLastUpdate         int64   `json:"expectedLastUpdate"`
 	ExpectedMatchedPrice       float64 `json:"expectedMatchedPrice"`
-	ExpectedMatchedVolume      int     `json:"expectedMatchedVolume"`
+	ExpectedMatchedVolume      int64   `json:"expectedMatchedVolume"`
 	ExpectedPriceChange        float64 `json:"expectedPriceChange"`
 	ExpectedPriceChangePercent float64 `json:"expectedPriceChangePercent"`
-	LastMESeq                  int     `json:"lastMESeq"`
+	LastMESeq                  int64   `json:"lastMESeq"`
 	AvgPrice                   float64 `json:"avgPrice"`
 	Highest                    float64 `json:"highest"`
 	Lowest                     float64 `json:"lowest"`
 	MatchedPrice               float64 `json:"matchedPrice"`
-	MatchedVolume              int     `json:"matchedVolume"`
-	NmTotalTradedQty           int     `json:"nmTotalTradedQty"`
+	MatchedVolume              int64   `json:"matchedVolume"`
+	NmTotalTradedQty           int64   `json:"nmTotalTradedQty"`
 	NmTotalTradedValue         int64   `json:"nmTotalTradedValue"`
 	OpenPrice                  float64 `json:"openPrice"`
 	PriceChange                float64 `json:"priceChange"`
 	PriceChangePercent         float64 `json:"priceChangePercent"`
-	StockBUVol                 int     `json:"stockBUVol"`
-	StockVol                   int     `json:"stockVol"`
-	StockSDVol                 int     `json:"stockSDVol"`
-	BuyForeignQtty             int     `json:"buyForeignQtty"`
+	StockBUVol                 int64   `json:"stockBUVol"`
+	StockVol                   int64   `json:"stockVol"`
+	StockSDVol                 int64   `json:"stockSDVol"`
+	BuyForeignQtty             int64   `json:"buyForeignQtty"`
 	BuyForeignValue            int64   `json:"buyForeignValue"`
-	LastMTSeq                  int     `json:"lastMTSeq"`
-	SellForeignQtty            int     `json:"sellForeignQtty"`
+	LastMTSeq                  int64   `json:"lastMTSeq"`
+	SellForeignQtty            int64   `json:"sellForeignQtty"`
 	SellForeignValue           int64   `json:"sellForeignValue"`
 	Session                    string  `json:"session"`
 	OddSession                 string  `json:"oddSession"`
@@ -128,3 +128,20 @@ type StockInfoResponse struct {
 	Message string            `json:"message"`
 	Data    StockTrackingInfo `json:"data"`
 }
+
+type StockHistoryData struct {
+	T []int64   `json:"t"`
+	C []float64 `json:"c"`
+	O []float64 `json:"o"`
+	H []float64 `json:"h"`
+	L []float64 `json:"l"`
+	V []int64   `json:"v"`
+	S string    `json:"s"`
+}
+
+type StockHistoryResponse struct {
+	Code    string           `json:"code"`
+	Message string           `json:"message"`
+	Data    StockHistoryData `json:"data"`
+}
+

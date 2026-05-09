@@ -60,6 +60,7 @@ func New(cfg *Config) (http.Handler, error) {
 			routesAPIv1.GET("/stocks/group/:group", groupStock.GetStocksByGroupHandler)
 			routesAPIv1.GET("/stocks/exchange/:exchange", groupStock.GetStocksByExchangeHandler)
 			routesAPIv1.GET("/stocks/info/:symbol", groupStock.GetStockInfoHandler)
+			routesAPIv1.GET("/stocks/history/:symbol", groupStock.GetStockHistoryHandler)
 		}
 
 		groupAuth := &GroupAuth{cfg}
@@ -82,6 +83,12 @@ func New(cfg *Config) (http.Handler, error) {
 			routesAPIv1Protected.POST("/stocks/favourite", groupFavouriteStock.AddFavouriteHandler)
 			routesAPIv1Protected.GET("/stocks/favourite", groupFavouriteStock.ListFavouritesHandler)
 			routesAPIv1Protected.DELETE("/stocks/favourite/:symbol", groupFavouriteStock.RemoveFavouriteHandler)
+
+			groupAlert := &GroupAlert{cfg}
+			routesAPIv1Protected.PUT("/users/telegram", groupAlert.UpdateTelegramChatID)
+			routesAPIv1Protected.GET("/alerts", groupAlert.ListUserStockAlerts)
+			routesAPIv1Protected.POST("/alerts", groupAlert.SetUserStockAlert)
+			routesAPIv1Protected.DELETE("/alerts/:id", groupAlert.RemoveUserStockAlert)
 		}
 	}
 

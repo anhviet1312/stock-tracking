@@ -14,11 +14,13 @@ var TableNames = struct {
 	Stocks              string
 	UserCodes           string
 	UserFavouriteStocks string
+	UserStockAlerts     string
 	Users               string
 }{
 	Stocks:              "stocks",
 	UserCodes:           "user_codes",
 	UserFavouriteStocks: "user_favourite_stocks",
+	UserStockAlerts:     "user_stock_alerts",
 	Users:               "users",
 }
 
@@ -26,6 +28,7 @@ var ColumnNames = struct {
 	Stocks              stockColumnNames
 	UserCodes           userCodeColumnNames
 	UserFavouriteStocks userFavouriteStockColumnNames
+	UserStockAlerts     userStockAlertColumnNames
 	Users               userColumnNames
 }{
 	Stocks: stockColumnNames{
@@ -55,16 +58,28 @@ var ColumnNames = struct {
 		CreatedAt: "created_at",
 		UpdatedAt: "updated_at",
 	},
+	UserStockAlerts: userStockAlertColumnNames{
+		ID:             "id",
+		UserID:         "user_id",
+		Symbol:         "symbol",
+		HighThreshold:  "high_threshold",
+		LowThreshold:   "low_threshold",
+		LastNotifiedAt: "last_notified_at",
+		IsActive:       "is_active",
+		CreatedAt:      "created_at",
+		UpdatedAt:      "updated_at",
+	},
 	Users: userColumnNames{
-		ID:        "id",
-		FirstName: "first_name",
-		LastName:  "last_name",
-		Username:  "username",
-		Password:  "password",
-		Email:     "email",
-		IsActive:  "is_active",
-		UpdatedAt: "updated_at",
-		CreatedAt: "created_at",
+		ID:             "id",
+		FirstName:      "first_name",
+		LastName:       "last_name",
+		Username:       "username",
+		Password:       "password",
+		Email:          "email",
+		IsActive:       "is_active",
+		UpdatedAt:      "updated_at",
+		CreatedAt:      "created_at",
+		TelegramChatID: "telegram_chat_id",
 	},
 }
 
@@ -79,17 +94,20 @@ func Where[Q psql.Filterable]() struct {
 	Stocks              stockWhere[Q]
 	UserCodes           userCodeWhere[Q]
 	UserFavouriteStocks userFavouriteStockWhere[Q]
+	UserStockAlerts     userStockAlertWhere[Q]
 	Users               userWhere[Q]
 } {
 	return struct {
 		Stocks              stockWhere[Q]
 		UserCodes           userCodeWhere[Q]
 		UserFavouriteStocks userFavouriteStockWhere[Q]
+		UserStockAlerts     userStockAlertWhere[Q]
 		Users               userWhere[Q]
 	}{
 		Stocks:              StockWhere[Q](),
 		UserCodes:           UserCodeWhere[Q](),
 		UserFavouriteStocks: UserFavouriteStockWhere[Q](),
+		UserStockAlerts:     UserStockAlertWhere[Q](),
 		Users:               UserWhere[Q](),
 	}
 }
@@ -110,6 +128,7 @@ type joins[Q dialect.Joinable] struct {
 	Stocks              joinSet[stockRelationshipJoins[Q]]
 	UserCodes           joinSet[userCodeRelationshipJoins[Q]]
 	UserFavouriteStocks joinSet[userFavouriteStockRelationshipJoins[Q]]
+	UserStockAlerts     joinSet[userStockAlertRelationshipJoins[Q]]
 	Users               joinSet[userRelationshipJoins[Q]]
 }
 
@@ -118,6 +137,7 @@ func getJoins[Q dialect.Joinable](ctx context.Context) joins[Q] {
 		Stocks:              stocksJoin[Q](ctx),
 		UserCodes:           userCodesJoin[Q](ctx),
 		UserFavouriteStocks: userFavouriteStocksJoin[Q](ctx),
+		UserStockAlerts:     userStockAlertsJoin[Q](ctx),
 		Users:               usersJoin[Q](ctx),
 	}
 }
