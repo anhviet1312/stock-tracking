@@ -27,15 +27,16 @@ import (
 
 // User is an object representing the database table.
 type User struct {
-	ID        uuid.UUID        `db:"id,pk" json:"id"`
-	FirstName null.Val[string] `db:"first_name" json:"first_name"`
-	LastName  null.Val[string] `db:"last_name" json:"last_name"`
-	Username  string           `db:"username" json:"username"`
-	Password  string           `db:"password" json:"password"`
-	Email     string           `db:"email" json:"email"`
-	IsActive  bool             `db:"is_active" json:"is_active"`
-	UpdatedAt time.Time        `db:"updated_at" json:"updated_at"`
-	CreatedAt time.Time        `db:"created_at" json:"created_at"`
+	ID             uuid.UUID        `db:"id,pk" json:"id"`
+	FirstName      null.Val[string] `db:"first_name" json:"first_name"`
+	LastName       null.Val[string] `db:"last_name" json:"last_name"`
+	Username       string           `db:"username" json:"username"`
+	Password       string           `db:"password" json:"password"`
+	Email          string           `db:"email" json:"email"`
+	IsActive       bool             `db:"is_active" json:"is_active"`
+	UpdatedAt      time.Time        `db:"updated_at" json:"updated_at"`
+	CreatedAt      time.Time        `db:"created_at" json:"created_at"`
+	TelegramChatID null.Val[string] `db:"telegram_chat_id" json:"telegram_chat_id"`
 
 	R userR `db:"-" json:"-"`
 }
@@ -57,25 +58,27 @@ type UsersStmt = bob.QueryStmt[*User, UserSlice]
 type userR struct {
 	UserCodes           UserCodeSlice           `json:"UserCodes"`           // user_codes.fk__user_codes__users
 	UserFavouriteStocks UserFavouriteStockSlice `json:"UserFavouriteStocks"` // user_favourite_stocks.fk_ufs_user
+	UserStockAlerts     UserStockAlertSlice     `json:"UserStockAlerts"`     // user_stock_alerts.fk_usa_user
 }
 
 // UserSetter is used for insert/upsert/update operations
 // All values are optional, and do not have to be set
 // Generated columns are not included
 type UserSetter struct {
-	ID        omit.Val[uuid.UUID]  `db:"id,pk"`
-	FirstName omitnull.Val[string] `db:"first_name"`
-	LastName  omitnull.Val[string] `db:"last_name"`
-	Username  omit.Val[string]     `db:"username"`
-	Password  omit.Val[string]     `db:"password"`
-	Email     omit.Val[string]     `db:"email"`
-	IsActive  omit.Val[bool]       `db:"is_active"`
-	UpdatedAt omit.Val[time.Time]  `db:"updated_at"`
-	CreatedAt omit.Val[time.Time]  `db:"created_at"`
+	ID             omit.Val[uuid.UUID]  `db:"id,pk"`
+	FirstName      omitnull.Val[string] `db:"first_name"`
+	LastName       omitnull.Val[string] `db:"last_name"`
+	Username       omit.Val[string]     `db:"username"`
+	Password       omit.Val[string]     `db:"password"`
+	Email          omit.Val[string]     `db:"email"`
+	IsActive       omit.Val[bool]       `db:"is_active"`
+	UpdatedAt      omit.Val[time.Time]  `db:"updated_at"`
+	CreatedAt      omit.Val[time.Time]  `db:"created_at"`
+	TelegramChatID omitnull.Val[string] `db:"telegram_chat_id"`
 }
 
 func (s UserSetter) SetColumns() []string {
-	vals := make([]string, 0, 9)
+	vals := make([]string, 0, 10)
 	if !s.ID.IsUnset() {
 		vals = append(vals, "id")
 	}
@@ -112,6 +115,10 @@ func (s UserSetter) SetColumns() []string {
 		vals = append(vals, "created_at")
 	}
 
+	if !s.TelegramChatID.IsUnset() {
+		vals = append(vals, "telegram_chat_id")
+	}
+
 	return vals
 }
 
@@ -143,10 +150,13 @@ func (s UserSetter) Overwrite(t *User) {
 	if !s.CreatedAt.IsUnset() {
 		t.CreatedAt, _ = s.CreatedAt.Get()
 	}
+	if !s.TelegramChatID.IsUnset() {
+		t.TelegramChatID, _ = s.TelegramChatID.GetNull()
+	}
 }
 
 func (s UserSetter) InsertMod() bob.Mod[*dialect.InsertQuery] {
-	vals := make([]bob.Expression, 9)
+	vals := make([]bob.Expression, 10)
 	if s.ID.IsUnset() {
 		vals[0] = psql.Raw("DEFAULT")
 	} else {
@@ -201,6 +211,12 @@ func (s UserSetter) InsertMod() bob.Mod[*dialect.InsertQuery] {
 		vals[8] = psql.Arg(s.CreatedAt)
 	}
 
+	if s.TelegramChatID.IsUnset() {
+		vals[9] = psql.Raw("DEFAULT")
+	} else {
+		vals[9] = psql.Arg(s.TelegramChatID)
+	}
+
 	return im.Values(vals...)
 }
 
@@ -209,7 +225,7 @@ func (s UserSetter) Apply(q *dialect.UpdateQuery) {
 }
 
 func (s UserSetter) Expressions(prefix ...string) []bob.Expression {
-	exprs := make([]bob.Expression, 0, 9)
+	exprs := make([]bob.Expression, 0, 10)
 
 	if !s.ID.IsUnset() {
 		exprs = append(exprs, expr.Join{Sep: " = ", Exprs: []bob.Expression{
@@ -274,30 +290,40 @@ func (s UserSetter) Expressions(prefix ...string) []bob.Expression {
 		}})
 	}
 
+	if !s.TelegramChatID.IsUnset() {
+		exprs = append(exprs, expr.Join{Sep: " = ", Exprs: []bob.Expression{
+			psql.Quote(append(prefix, "telegram_chat_id")...),
+			psql.Arg(s.TelegramChatID),
+		}})
+	}
+
 	return exprs
 }
 
 type userColumnNames struct {
-	ID        string
-	FirstName string
-	LastName  string
-	Username  string
-	Password  string
-	Email     string
-	IsActive  string
-	UpdatedAt string
-	CreatedAt string
+	ID             string
+	FirstName      string
+	LastName       string
+	Username       string
+	Password       string
+	Email          string
+	IsActive       string
+	UpdatedAt      string
+	CreatedAt      string
+	TelegramChatID string
 }
 
 type userRelationshipJoins[Q dialect.Joinable] struct {
 	UserCodes           bob.Mod[Q]
 	UserFavouriteStocks bob.Mod[Q]
+	UserStockAlerts     bob.Mod[Q]
 }
 
 func buildUserRelationshipJoins[Q dialect.Joinable](ctx context.Context, typ string) userRelationshipJoins[Q] {
 	return userRelationshipJoins[Q]{
 		UserCodes:           usersJoinUserCodes[Q](ctx, typ),
 		UserFavouriteStocks: usersJoinUserFavouriteStocks[Q](ctx, typ),
+		UserStockAlerts:     usersJoinUserStockAlerts[Q](ctx, typ),
 	}
 }
 
@@ -310,50 +336,54 @@ func usersJoin[Q dialect.Joinable](ctx context.Context) joinSet[userRelationship
 }
 
 var UserColumns = struct {
-	ID        psql.Expression
-	FirstName psql.Expression
-	LastName  psql.Expression
-	Username  psql.Expression
-	Password  psql.Expression
-	Email     psql.Expression
-	IsActive  psql.Expression
-	UpdatedAt psql.Expression
-	CreatedAt psql.Expression
+	ID             psql.Expression
+	FirstName      psql.Expression
+	LastName       psql.Expression
+	Username       psql.Expression
+	Password       psql.Expression
+	Email          psql.Expression
+	IsActive       psql.Expression
+	UpdatedAt      psql.Expression
+	CreatedAt      psql.Expression
+	TelegramChatID psql.Expression
 }{
-	ID:        psql.Quote("users", "id"),
-	FirstName: psql.Quote("users", "first_name"),
-	LastName:  psql.Quote("users", "last_name"),
-	Username:  psql.Quote("users", "username"),
-	Password:  psql.Quote("users", "password"),
-	Email:     psql.Quote("users", "email"),
-	IsActive:  psql.Quote("users", "is_active"),
-	UpdatedAt: psql.Quote("users", "updated_at"),
-	CreatedAt: psql.Quote("users", "created_at"),
+	ID:             psql.Quote("users", "id"),
+	FirstName:      psql.Quote("users", "first_name"),
+	LastName:       psql.Quote("users", "last_name"),
+	Username:       psql.Quote("users", "username"),
+	Password:       psql.Quote("users", "password"),
+	Email:          psql.Quote("users", "email"),
+	IsActive:       psql.Quote("users", "is_active"),
+	UpdatedAt:      psql.Quote("users", "updated_at"),
+	CreatedAt:      psql.Quote("users", "created_at"),
+	TelegramChatID: psql.Quote("users", "telegram_chat_id"),
 }
 
 type userWhere[Q psql.Filterable] struct {
-	ID        psql.WhereMod[Q, uuid.UUID]
-	FirstName psql.WhereNullMod[Q, string]
-	LastName  psql.WhereNullMod[Q, string]
-	Username  psql.WhereMod[Q, string]
-	Password  psql.WhereMod[Q, string]
-	Email     psql.WhereMod[Q, string]
-	IsActive  psql.WhereMod[Q, bool]
-	UpdatedAt psql.WhereMod[Q, time.Time]
-	CreatedAt psql.WhereMod[Q, time.Time]
+	ID             psql.WhereMod[Q, uuid.UUID]
+	FirstName      psql.WhereNullMod[Q, string]
+	LastName       psql.WhereNullMod[Q, string]
+	Username       psql.WhereMod[Q, string]
+	Password       psql.WhereMod[Q, string]
+	Email          psql.WhereMod[Q, string]
+	IsActive       psql.WhereMod[Q, bool]
+	UpdatedAt      psql.WhereMod[Q, time.Time]
+	CreatedAt      psql.WhereMod[Q, time.Time]
+	TelegramChatID psql.WhereNullMod[Q, string]
 }
 
 func UserWhere[Q psql.Filterable]() userWhere[Q] {
 	return userWhere[Q]{
-		ID:        psql.Where[Q, uuid.UUID](UserColumns.ID),
-		FirstName: psql.WhereNull[Q, string](UserColumns.FirstName),
-		LastName:  psql.WhereNull[Q, string](UserColumns.LastName),
-		Username:  psql.Where[Q, string](UserColumns.Username),
-		Password:  psql.Where[Q, string](UserColumns.Password),
-		Email:     psql.Where[Q, string](UserColumns.Email),
-		IsActive:  psql.Where[Q, bool](UserColumns.IsActive),
-		UpdatedAt: psql.Where[Q, time.Time](UserColumns.UpdatedAt),
-		CreatedAt: psql.Where[Q, time.Time](UserColumns.CreatedAt),
+		ID:             psql.Where[Q, uuid.UUID](UserColumns.ID),
+		FirstName:      psql.WhereNull[Q, string](UserColumns.FirstName),
+		LastName:       psql.WhereNull[Q, string](UserColumns.LastName),
+		Username:       psql.Where[Q, string](UserColumns.Username),
+		Password:       psql.Where[Q, string](UserColumns.Password),
+		Email:          psql.Where[Q, string](UserColumns.Email),
+		IsActive:       psql.Where[Q, bool](UserColumns.IsActive),
+		UpdatedAt:      psql.Where[Q, time.Time](UserColumns.UpdatedAt),
+		CreatedAt:      psql.Where[Q, time.Time](UserColumns.CreatedAt),
+		TelegramChatID: psql.WhereNull[Q, string](UserColumns.TelegramChatID),
 	}
 }
 
@@ -468,6 +498,14 @@ func usersJoinUserFavouriteStocks[Q dialect.Joinable](ctx context.Context, typ s
 	}
 }
 
+func usersJoinUserStockAlerts[Q dialect.Joinable](ctx context.Context, typ string) bob.Mod[Q] {
+	return mods.QueryMods[Q]{
+		dialect.Join[Q](typ, UserStockAlerts.NameAs(ctx)).On(
+			UserStockAlertColumns.UserID.EQ(UserColumns.ID),
+		),
+	}
+}
+
 // UserCodes starts a query for related objects on user_codes
 func (o *User) UserCodes(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) UserCodesQuery {
 	return UserCodes.Query(ctx, exec, append(mods,
@@ -504,6 +542,24 @@ func (os UserSlice) UserFavouriteStocks(ctx context.Context, exec bob.Executor, 
 	)...)
 }
 
+// UserStockAlerts starts a query for related objects on user_stock_alerts
+func (o *User) UserStockAlerts(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) UserStockAlertsQuery {
+	return UserStockAlerts.Query(ctx, exec, append(mods,
+		sm.Where(UserStockAlertColumns.UserID.EQ(psql.Arg(o.ID))),
+	)...)
+}
+
+func (os UserSlice) UserStockAlerts(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) UserStockAlertsQuery {
+	PKArgs := make([]bob.Expression, len(os))
+	for i, o := range os {
+		PKArgs[i] = psql.ArgGroup(o.ID)
+	}
+
+	return UserStockAlerts.Query(ctx, exec, append(mods,
+		sm.Where(psql.Group(UserStockAlertColumns.UserID).In(PKArgs...)),
+	)...)
+}
+
 func (o *User) Preload(name string, retrieved any) error {
 	if o == nil {
 		return nil
@@ -531,6 +587,20 @@ func (o *User) Preload(name string, retrieved any) error {
 		}
 
 		o.R.UserFavouriteStocks = rels
+
+		for _, rel := range rels {
+			if rel != nil {
+				rel.R.User = o
+			}
+		}
+		return nil
+	case "UserStockAlerts":
+		rels, ok := retrieved.(UserStockAlertSlice)
+		if !ok {
+			return fmt.Errorf("user cannot load %T as %q", retrieved, name)
+		}
+
+		o.R.UserStockAlerts = rels
 
 		for _, rel := range rels {
 			if rel != nil {
@@ -687,6 +757,78 @@ func (os UserSlice) LoadUserUserFavouriteStocks(ctx context.Context, exec bob.Ex
 	return nil
 }
 
+func ThenLoadUserUserStockAlerts(queryMods ...bob.Mod[*dialect.SelectQuery]) psql.Loader {
+	return psql.Loader(func(ctx context.Context, exec bob.Executor, retrieved any) error {
+		loader, isLoader := retrieved.(interface {
+			LoadUserUserStockAlerts(context.Context, bob.Executor, ...bob.Mod[*dialect.SelectQuery]) error
+		})
+		if !isLoader {
+			return fmt.Errorf("object %T cannot load UserUserStockAlerts", retrieved)
+		}
+
+		err := loader.LoadUserUserStockAlerts(ctx, exec, queryMods...)
+
+		// Don't cause an issue due to missing relationships
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+
+		return err
+	})
+}
+
+// LoadUserUserStockAlerts loads the user's UserStockAlerts into the .R struct
+func (o *User) LoadUserUserStockAlerts(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
+	if o == nil {
+		return nil
+	}
+
+	// Reset the relationship
+	o.R.UserStockAlerts = nil
+
+	related, err := o.UserStockAlerts(ctx, exec, mods...).All()
+	if err != nil {
+		return err
+	}
+
+	for _, rel := range related {
+		rel.R.User = o
+	}
+
+	o.R.UserStockAlerts = related
+	return nil
+}
+
+// LoadUserUserStockAlerts loads the user's UserStockAlerts into the .R struct
+func (os UserSlice) LoadUserUserStockAlerts(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
+	if len(os) == 0 {
+		return nil
+	}
+
+	userStockAlerts, err := os.UserStockAlerts(ctx, exec, mods...).All()
+	if err != nil {
+		return err
+	}
+
+	for _, o := range os {
+		o.R.UserStockAlerts = nil
+	}
+
+	for _, o := range os {
+		for _, rel := range userStockAlerts {
+			if o.ID != rel.UserID {
+				continue
+			}
+
+			rel.R.User = o
+
+			o.R.UserStockAlerts = append(o.R.UserStockAlerts, rel)
+		}
+	}
+
+	return nil
+}
+
 func insertUserUserCodes0(ctx context.Context, exec bob.Executor, userCodes1 []*UserCodeSetter, user0 *User) (UserCodeSlice, error) {
 	for i := range userCodes1 {
 		userCodes1[i].UserID = omit.From(user0.ID)
@@ -811,6 +953,72 @@ func (user0 *User) AttachUserFavouriteStocks(ctx context.Context, exec bob.Execu
 	}
 
 	user0.R.UserFavouriteStocks = append(user0.R.UserFavouriteStocks, userFavouriteStocks1...)
+
+	for _, rel := range related {
+		rel.R.User = user0
+	}
+
+	return nil
+}
+
+func insertUserUserStockAlerts0(ctx context.Context, exec bob.Executor, userStockAlerts1 []*UserStockAlertSetter, user0 *User) (UserStockAlertSlice, error) {
+	for i := range userStockAlerts1 {
+		userStockAlerts1[i].UserID = omit.From(user0.ID)
+	}
+
+	ret, err := UserStockAlerts.InsertMany(ctx, exec, userStockAlerts1...)
+	if err != nil {
+		return ret, fmt.Errorf("insertUserUserStockAlerts0: %w", err)
+	}
+
+	return ret, nil
+}
+
+func attachUserUserStockAlerts0(ctx context.Context, exec bob.Executor, count int, userStockAlerts1 UserStockAlertSlice, user0 *User) (UserStockAlertSlice, error) {
+	setter := &UserStockAlertSetter{
+		UserID: omit.From(user0.ID),
+	}
+
+	err := UserStockAlerts.Update(ctx, exec, setter, userStockAlerts1...)
+	if err != nil {
+		return nil, fmt.Errorf("attachUserUserStockAlerts0: %w", err)
+	}
+
+	return userStockAlerts1, nil
+}
+
+func (user0 *User) InsertUserStockAlerts(ctx context.Context, exec bob.Executor, related ...*UserStockAlertSetter) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	userStockAlerts1, err := insertUserUserStockAlerts0(ctx, exec, related, user0)
+	if err != nil {
+		return err
+	}
+
+	user0.R.UserStockAlerts = append(user0.R.UserStockAlerts, userStockAlerts1...)
+
+	for _, rel := range userStockAlerts1 {
+		rel.R.User = user0
+	}
+	return nil
+}
+
+func (user0 *User) AttachUserStockAlerts(ctx context.Context, exec bob.Executor, related ...*UserStockAlert) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	userStockAlerts1 := UserStockAlertSlice(related)
+
+	_, err = attachUserUserStockAlerts0(ctx, exec, len(related), userStockAlerts1, user0)
+	if err != nil {
+		return err
+	}
+
+	user0.R.UserStockAlerts = append(user0.R.UserStockAlerts, userStockAlerts1...)
 
 	for _, rel := range related {
 		rel.R.User = user0

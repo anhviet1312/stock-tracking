@@ -30,3 +30,4 @@ EMAIL_USERNAME=vi37.h@yandex.com
 EMAIL_PASSWORD=iumtdzcoosifewyb
 
 JWT_SECRET=
+TELEGRAM_BOT_TOKEN=

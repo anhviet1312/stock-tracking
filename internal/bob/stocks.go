@@ -53,6 +53,7 @@ type StocksStmt = bob.QueryStmt[*Stock, StockSlice]
 // stockR is where relationships are stored.
 type stockR struct {
 	SymbolUserFavouriteStocks UserFavouriteStockSlice `json:"SymbolUserFavouriteStocks"` // user_favourite_stocks.fk_ufs_stock
+	SymbolUserStockAlerts     UserStockAlertSlice     `json:"SymbolUserStockAlerts"`     // user_stock_alerts.fk_usa_stock
 }
 
 // StockSetter is used for insert/upsert/update operations
@@ -243,11 +244,13 @@ type stockColumnNames struct {
 
 type stockRelationshipJoins[Q dialect.Joinable] struct {
 	SymbolUserFavouriteStocks bob.Mod[Q]
+	SymbolUserStockAlerts     bob.Mod[Q]
 }
 
 func buildStockRelationshipJoins[Q dialect.Joinable](ctx context.Context, typ string) stockRelationshipJoins[Q] {
 	return stockRelationshipJoins[Q]{
 		SymbolUserFavouriteStocks: stocksJoinSymbolUserFavouriteStocks[Q](ctx, typ),
+		SymbolUserStockAlerts:     stocksJoinSymbolUserStockAlerts[Q](ctx, typ),
 	}
 }
 
@@ -402,6 +405,14 @@ func stocksJoinSymbolUserFavouriteStocks[Q dialect.Joinable](ctx context.Context
 	}
 }
 
+func stocksJoinSymbolUserStockAlerts[Q dialect.Joinable](ctx context.Context, typ string) bob.Mod[Q] {
+	return mods.QueryMods[Q]{
+		dialect.Join[Q](typ, UserStockAlerts.NameAs(ctx)).On(
+			UserStockAlertColumns.Symbol.EQ(StockColumns.Symbol),
+		),
+	}
+}
+
 // SymbolUserFavouriteStocks starts a query for related objects on user_favourite_stocks
 func (o *Stock) SymbolUserFavouriteStocks(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) UserFavouriteStocksQuery {
 	return UserFavouriteStocks.Query(ctx, exec, append(mods,
@@ -420,6 +431,24 @@ func (os StockSlice) SymbolUserFavouriteStocks(ctx context.Context, exec bob.Exe
 	)...)
 }
 
+// SymbolUserStockAlerts starts a query for related objects on user_stock_alerts
+func (o *Stock) SymbolUserStockAlerts(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) UserStockAlertsQuery {
+	return UserStockAlerts.Query(ctx, exec, append(mods,
+		sm.Where(UserStockAlertColumns.Symbol.EQ(psql.Arg(o.Symbol))),
+	)...)
+}
+
+func (os StockSlice) SymbolUserStockAlerts(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) UserStockAlertsQuery {
+	PKArgs := make([]bob.Expression, len(os))
+	for i, o := range os {
+		PKArgs[i] = psql.ArgGroup(o.Symbol)
+	}
+
+	return UserStockAlerts.Query(ctx, exec, append(mods,
+		sm.Where(psql.Group(UserStockAlertColumns.Symbol).In(PKArgs...)),
+	)...)
+}
+
 func (o *Stock) Preload(name string, retrieved any) error {
 	if o == nil {
 		return nil
@@ -433,6 +462,20 @@ func (o *Stock) Preload(name string, retrieved any) error {
 		}
 
 		o.R.SymbolUserFavouriteStocks = rels
+
+		for _, rel := range rels {
+			if rel != nil {
+				rel.R.SymbolStock = o
+			}
+		}
+		return nil
+	case "SymbolUserStockAlerts":
+		rels, ok := retrieved.(UserStockAlertSlice)
+		if !ok {
+			return fmt.Errorf("stock cannot load %T as %q", retrieved, name)
+		}
+
+		o.R.SymbolUserStockAlerts = rels
 
 		for _, rel := range rels {
 			if rel != nil {
@@ -517,6 +560,78 @@ func (os StockSlice) LoadStockSymbolUserFavouriteStocks(ctx context.Context, exe
 	return nil
 }
 
+func ThenLoadStockSymbolUserStockAlerts(queryMods ...bob.Mod[*dialect.SelectQuery]) psql.Loader {
+	return psql.Loader(func(ctx context.Context, exec bob.Executor, retrieved any) error {
+		loader, isLoader := retrieved.(interface {
+			LoadStockSymbolUserStockAlerts(context.Context, bob.Executor, ...bob.Mod[*dialect.SelectQuery]) error
+		})
+		if !isLoader {
+			return fmt.Errorf("object %T cannot load StockSymbolUserStockAlerts", retrieved)
+		}
+
+		err := loader.LoadStockSymbolUserStockAlerts(ctx, exec, queryMods...)
+
+		// Don't cause an issue due to missing relationships
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+
+		return err
+	})
+}
+
+// LoadStockSymbolUserStockAlerts loads the stock's SymbolUserStockAlerts into the .R struct
+func (o *Stock) LoadStockSymbolUserStockAlerts(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
+	if o == nil {
+		return nil
+	}
+
+	// Reset the relationship
+	o.R.SymbolUserStockAlerts = nil
+
+	related, err := o.SymbolUserStockAlerts(ctx, exec, mods...).All()
+	if err != nil {
+		return err
+	}
+
+	for _, rel := range related {
+		rel.R.SymbolStock = o
+	}
+
+	o.R.SymbolUserStockAlerts = related
+	return nil
+}
+
+// LoadStockSymbolUserStockAlerts loads the stock's SymbolUserStockAlerts into the .R struct
+func (os StockSlice) LoadStockSymbolUserStockAlerts(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
+	if len(os) == 0 {
+		return nil
+	}
+
+	userStockAlerts, err := os.SymbolUserStockAlerts(ctx, exec, mods...).All()
+	if err != nil {
+		return err
+	}
+
+	for _, o := range os {
+		o.R.SymbolUserStockAlerts = nil
+	}
+
+	for _, o := range os {
+		for _, rel := range userStockAlerts {
+			if o.Symbol != rel.Symbol {
+				continue
+			}
+
+			rel.R.SymbolStock = o
+
+			o.R.SymbolUserStockAlerts = append(o.R.SymbolUserStockAlerts, rel)
+		}
+	}
+
+	return nil
+}
+
 func insertStockSymbolUserFavouriteStocks0(ctx context.Context, exec bob.Executor, userFavouriteStocks1 []*UserFavouriteStockSetter, stock0 *Stock) (UserFavouriteStockSlice, error) {
 	for i := range userFavouriteStocks1 {
 		userFavouriteStocks1[i].Symbol = omit.From(stock0.Symbol)
@@ -575,6 +690,72 @@ func (stock0 *Stock) AttachSymbolUserFavouriteStocks(ctx context.Context, exec b
 	}
 
 	stock0.R.SymbolUserFavouriteStocks = append(stock0.R.SymbolUserFavouriteStocks, userFavouriteStocks1...)
+
+	for _, rel := range related {
+		rel.R.SymbolStock = stock0
+	}
+
+	return nil
+}
+
+func insertStockSymbolUserStockAlerts0(ctx context.Context, exec bob.Executor, userStockAlerts1 []*UserStockAlertSetter, stock0 *Stock) (UserStockAlertSlice, error) {
+	for i := range userStockAlerts1 {
+		userStockAlerts1[i].Symbol = omit.From(stock0.Symbol)
+	}
+
+	ret, err := UserStockAlerts.InsertMany(ctx, exec, userStockAlerts1...)
+	if err != nil {
+		return ret, fmt.Errorf("insertStockSymbolUserStockAlerts0: %w", err)
+	}
+
+	return ret, nil
+}
+
+func attachStockSymbolUserStockAlerts0(ctx context.Context, exec bob.Executor, count int, userStockAlerts1 UserStockAlertSlice, stock0 *Stock) (UserStockAlertSlice, error) {
+	setter := &UserStockAlertSetter{
+		Symbol: omit.From(stock0.Symbol),
+	}
+
+	err := UserStockAlerts.Update(ctx, exec, setter, userStockAlerts1...)
+	if err != nil {
+		return nil, fmt.Errorf("attachStockSymbolUserStockAlerts0: %w", err)
+	}
+
+	return userStockAlerts1, nil
+}
+
+func (stock0 *Stock) InsertSymbolUserStockAlerts(ctx context.Context, exec bob.Executor, related ...*UserStockAlertSetter) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	userStockAlerts1, err := insertStockSymbolUserStockAlerts0(ctx, exec, related, stock0)
+	if err != nil {
+		return err
+	}
+
+	stock0.R.SymbolUserStockAlerts = append(stock0.R.SymbolUserStockAlerts, userStockAlerts1...)
+
+	for _, rel := range userStockAlerts1 {
+		rel.R.SymbolStock = stock0
+	}
+	return nil
+}
+
+func (stock0 *Stock) AttachSymbolUserStockAlerts(ctx context.Context, exec bob.Executor, related ...*UserStockAlert) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	userStockAlerts1 := UserStockAlertSlice(related)
+
+	_, err = attachStockSymbolUserStockAlerts0(ctx, exec, len(related), userStockAlerts1, stock0)
+	if err != nil {
+		return err
+	}
+
+	stock0.R.SymbolUserStockAlerts = append(stock0.R.SymbolUserStockAlerts, userStockAlerts1...)
 
 	for _, rel := range related {
 		rel.R.SymbolStock = stock0

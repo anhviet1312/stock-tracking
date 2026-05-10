@@ -17,6 +17,7 @@ import (
 	"codebase/internal/service/auth"
 	"codebase/internal/service/mail"
 	"codebase/internal/service/stock"
+	"codebase/internal/service/alert"
 
 	"codebase/internal/service/utils"
 	"codebase/pkg/caching"
@@ -58,6 +59,7 @@ func NewContainer(vs map[string]string) *do.Injector {
 	do.Provide(injector, ProvideServiceUtils)
 	do.Provide(injector, ProvideServiceStock)
 	do.Provide(injector, ProvideServiceAuth)
+	do.Provide(injector, ProvideServiceAlert)
 
 	return injector
 }
@@ -227,4 +229,8 @@ func ProvideServiceStock(i *do.Injector) (stock.ServiceStock, error) {
 
 func ProvideServiceAuth(i *do.Injector) (auth.ServiceAuth, error) {
 	return auth.NewServiceAuth(i)
+}
+
+func ProvideServiceAlert(i *do.Injector) (alert.ServiceAlert, error) {
+	return alert.NewServiceAlert(i)
 }
